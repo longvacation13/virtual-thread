@@ -5,12 +5,59 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
+import com.example.demo.util.ThreadUtil;
+
+
 @RestController
 @RequestMapping("/test")
 public class TestController {
 
-    @GetMapping
+
+    private static final int TASK_COUNT = 1000;
+
+    @GetMapping("/hello")
     public ResponseEntity<String> sayHello() {
         return ResponseEntity.ok("Hello world");
     }
+
+    @GetMapping("/platform")
+    public ResponseEntity<String> testPlatformThreads() throws InterruptedException {
+        Instant start = Instant.now();
+
+        // 플랫폼 스레드 풀 생성
+        ExecutorService executor = Executors.newFixedThreadPool(100);
+        IntStream.range(0, TASK_COUNT).forEach(i -> executor.submit(ThreadUtil::performTask));
+
+        // 스레드 종료 및 작업 완료 대기
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+            Thread.sleep(10);
+        }
+
+        Instant end = Instant.now();
+        Duration duration = Duration.between(start, end);
+        return ResponseEntity.ok("Platform Threads completed in: " + duration.toMillis() + " ms");
+    }
+
+    @GetMapping("/virtual")
+    public ResponseEntity<String> testVirtualThreads() throws InterruptedException {
+        Instant start = Instant.now();
+
+        // Virtual Thread Executor 생성
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            IntStream.range(0, TASK_COUNT).forEach(i -> executor.submit(ThreadUtil::performTask));
+        }
+
+        Instant end = Instant.now();
+        Duration duration = Duration.between(start, end);
+        return ResponseEntity.ok("Virtual Threads completed in: " + duration.toMillis() + " ms");
+    }
+
+
+
 }
