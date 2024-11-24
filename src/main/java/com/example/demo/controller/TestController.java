@@ -48,6 +48,9 @@ public class TestController {
     public ResponseEntity<String> testVirtualThreads() throws InterruptedException {
         Instant start = Instant.now();
 
+        System.out.println("\nBefore starting virtual threads:");
+        ThreadUtil.printMemoryUsage(); // 작업 전 메모리 사용량
+
         // Virtual Thread Executor 생성
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             IntStream.range(0, TASK_COUNT).forEach(i -> executor.submit(ThreadUtil::performTask));
@@ -55,6 +58,16 @@ public class TestController {
 
         Instant end = Instant.now();
         Duration duration = Duration.between(start, end);
+
+        System.out.println("\nAfter finishing virtual threads:");
+        ThreadUtil.printMemoryUsage(); // 작업 후 메모리 사용량
+
+        // 강제로 GC 호출 후 메모리 확인
+        System.gc();
+        System.out.println("\nAfter garbage collection:");
+        ThreadUtil.printMemoryUsage();
+
+
         return ResponseEntity.ok("Virtual Threads completed in: " + duration.toMillis() + " ms");
     }
 
